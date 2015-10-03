@@ -62,7 +62,7 @@ func newDebug() (self *debug) {
 	self.Buffer = bytes.NewBuffer([]byte{})
 	self.ReadWriter = bufio.NewReadWriter(bufio.NewReader(self.Buffer), bufio.NewWriter(self.Buffer))
 	self.Now = time.Now().In(time.Local)
-	self.Trace = NewTrace().Trace(traceStepBack + 1)
+	self.Trace = newTrace().Trace(traceStepBack + 1)
 	return
 }
 
