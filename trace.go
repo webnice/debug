@@ -2,6 +2,7 @@ package debug
 
 import (
 	"runtime"
+	"strings"
 )
 
 const (
@@ -10,6 +11,7 @@ const (
 
 // Trace
 type trace struct {
+	Package string
 	Function string
 	File     string
 	Line     int
@@ -24,6 +26,7 @@ func (self *trace) Trace(level int) *trace {
 	var ok bool
 	var pc uintptr
 	var buf []byte
+	var tmp []string
 	var i int
 
 	if level == 0 {
@@ -38,6 +41,10 @@ func (self *trace) Trace(level int) *trace {
 		}
 		i = runtime.Stack(buf, true)
 		self.Stack = string(buf[:i])
+	}
+	tmp = strings.SplitN(self.Function, `.`, 2)
+	if len(tmp) == 2 {
+		self.Package, self.Function = tmp[0], tmp[1]
 	}
 	return self
 }

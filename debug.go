@@ -85,7 +85,7 @@ func (self *debug) Dump(idl ...interface{}) *debug {
 // Add information before dump
 func (self *debug) Prefix(fn string) *debug {
 	self.ReadWriter.WriteString(fmt.Sprintf(delimiterBeg+lineEnd, self.Now.Day(), self.Now.Month(), self.Now.Year(), self.Now.Hour(), self.Now.Minute(), self.Now.Second(), self.Now.Nanosecond()))
-	self.ReadWriter.WriteString(fmt.Sprintf("[ %30s ] %s:%d [%s()]"+lineEnd, fn, self.Trace.File, self.Trace.Line, self.Trace.Function))
+	self.ReadWriter.WriteString(fmt.Sprintf("[ %30s ] %s:%d [%s][%s()]"+lineEnd, fn, self.Trace.File, self.Trace.Line, self.Trace.Package, self.Trace.Function))
 	return self
 }
 
