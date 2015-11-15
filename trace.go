@@ -23,7 +23,7 @@ func newTrace() *trace {
 	return new(trace)
 }
 
-func (self *trace) Trace(level int) *trace {
+func (t *trace) Trace(level int) *trace {
 	var ok bool
 	var pc uintptr
 	var fn *runtime.Func
@@ -35,29 +35,29 @@ func (self *trace) Trace(level int) *trace {
 		level = traceStepBack
 	}
 	buf = make([]byte, 1<<16)
-	pc, self.File, self.Line, ok = runtime.Caller(level)
+	pc, t.File, t.Line, ok = runtime.Caller(level)
 	if ok == true {
 		fn = runtime.FuncForPC(pc)
 		if fn != nil {
-			self.Function = fn.Name()
+			t.Function = fn.Name()
 		}
 		i = runtime.Stack(buf, true)
-		self.Stack = string(buf[:i])
+		t.Stack = string(buf[:i])
 
-		tmp = strings.Split(self.Function, packageSeparator)
+		tmp = strings.Split(t.Function, packageSeparator)
 		if len(tmp) > 1 {
-			self.Package += strings.Join(tmp[:len(tmp)-1], packageSeparator)
-			self.Function = tmp[len(tmp)-1]
+			t.Package += strings.Join(tmp[:len(tmp)-1], packageSeparator)
+			t.Function = tmp[len(tmp)-1]
 		}
-		tmp = strings.SplitN(self.Function, `.`, 2)
+		tmp = strings.SplitN(t.Function, `.`, 2)
 		if len(tmp) == 2 {
-			if self.Package != "" {
-				self.Package += packageSeparator
+			if t.Package != "" {
+				t.Package += packageSeparator
 			}
-			self.Package += tmp[0]
-			self.Function = tmp[1]
+			t.Package += tmp[0]
+			t.Function = tmp[1]
 		}
 
 	}
-	return self
+	return t
 }

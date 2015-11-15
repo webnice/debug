@@ -26,7 +26,7 @@ type (
 )
 
 var (
-	indent []byte = []byte("\t")
+	indent = []byte("\t")
 )
 
 func isExported(name string) bool {
@@ -102,6 +102,19 @@ func (p *printer) Write(data []byte) (n int, err error) {
 	return
 }
 
+func (p *printer) LenPlus(x reflect.Value) {
+	if x.Len() > 0 {
+		p.indentLevel++
+		p.printf("\n")
+		for i, n := 0, x.Len(); i < n; i++ {
+			p.printf("%d: ", i)
+			p.print(x.Index(i))
+			p.printf("\n")
+		}
+		p.indentLevel--
+	}
+}
+
 func (p *printer) print(x reflect.Value) {
 	if !notNilFilter("", x) {
 		p.printf("nil")
@@ -149,16 +162,7 @@ func (p *printer) print(x reflect.Value) {
 			p.printf("%q\n", b())
 			p.indentLevel--
 		} else {
-			if x.Len() > 0 {
-				p.indentLevel++
-				p.printf("\n")
-				for i, n := 0, x.Len(); i < n; i++ {
-					p.printf("%d: ", i)
-					p.print(x.Index(i))
-					p.printf("\n")
-				}
-				p.indentLevel--
-			}
+			p.LenPlus(x)
 		}
 		p.printf("}")
 
@@ -168,16 +172,7 @@ func (p *printer) print(x reflect.Value) {
 			return
 		}
 		p.printf("%s (len = %d) {", x.Type(), x.Len())
-		if x.Len() > 0 {
-			p.indentLevel++
-			p.printf("\n")
-			for i, n := 0, x.Len(); i < n; i++ {
-				p.printf("%d: ", i)
-				p.print(x.Index(i))
-				p.printf("\n")
-			}
-			p.indentLevel--
-		}
+		p.LenPlus(x)
 		p.printf("}")
 
 	case reflect.Struct:

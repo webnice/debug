@@ -6,8 +6,7 @@ import (
 	"path/filepath"
 )
 
-// Save string to file. Create file if not exist and append file if exist
-// If file name is not specified, create file name is the same program name and .txt at extension
+// FileSave Save string to file. Create file if not exist and append file if exist. If file name is not specified, create file name is the same program name and .txt at extension
 func FileSave(body []byte, file, path string) (err error) {
 	const ext string = `.txt`
 	var dir string
@@ -25,7 +24,8 @@ func FileSave(body []byte, file, path string) (err error) {
 		pi, err = os.Stat(path)
 		if err != nil && os.IsNotExist(err) == false {
 			return
-		} else {
+		}
+		if err == nil {
 			err = os.MkdirAll(path, 0755)
 			if err != nil {
 				return
@@ -46,7 +46,10 @@ func FileSave(body []byte, file, path string) (err error) {
 	if err != nil {
 		return
 	}
-	fh.Write(body)
-	fh.Close()
+	_, err = fh.Write(body)
+	if err != nil {
+		return
+	}
+	err = fh.Close()
 	return
 }

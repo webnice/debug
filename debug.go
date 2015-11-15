@@ -67,57 +67,57 @@ func newDebug() (self *debug) {
 }
 
 // Dump all variables
-func (self *debug) Dump(idl ...interface{}) *debug {
+func (d *debug) Dump(idl ...interface{}) *debug {
 	var i int
 	var fset *token.FileSet
 
 	for i = range idl {
 		fset = token.NewFileSet()
-		printerPrint(self.ReadWriter, fset, idl[i], notNilFilter)
+		_ = printerPrint(d.ReadWriter, fset, idl[i], notNilFilter)
 	}
 	// call stack
 	if seeTrace {
-		self.ReadWriter.WriteString(self.Trace.Stack + lineEnd)
+		_, _ = d.ReadWriter.WriteString(d.Trace.Stack + lineEnd)
 	}
-	return self
+	return d
 }
 
 // Add information before dump
-func (self *debug) Prefix(fn string) *debug {
-	self.ReadWriter.WriteString(fmt.Sprintf(delimiterBeg+lineEnd, self.Now.Day(), self.Now.Month(), self.Now.Year(), self.Now.Hour(), self.Now.Minute(), self.Now.Second(), self.Now.Nanosecond()))
-	self.ReadWriter.WriteString(fmt.Sprintf("[ %30s ] %s:%d [%s] [%s()]"+lineEnd, fn, self.Trace.File, self.Trace.Line, self.Trace.Package, self.Trace.Function))
-	return self
+func (d *debug) Prefix(fn string) *debug {
+	_, _ = d.ReadWriter.WriteString(fmt.Sprintf(delimiterBeg+lineEnd, d.Now.Day(), d.Now.Month(), d.Now.Year(), d.Now.Hour(), d.Now.Minute(), d.Now.Second(), d.Now.Nanosecond()))
+	_, _ = d.ReadWriter.WriteString(fmt.Sprintf("[ %30s ] %s:%d [%s] [%s()]"+lineEnd, fn, d.Trace.File, d.Trace.Line, d.Trace.Package, d.Trace.Function))
+	return d
 }
 
 // Add information after dump
-func (self *debug) Suffix() *debug {
-	self.ReadWriter.WriteString(delimiterEnd + lineEnd)
-	return self
+func (d *debug) Suffix() *debug {
+	_, _ = d.ReadWriter.WriteString(delimiterEnd + lineEnd)
+	return d
 }
 
 // Finalisation dump
-func (self *debug) Final() *bytes.Buffer {
+func (d *debug) Final() *bytes.Buffer {
 	var line []byte
 	var isPrefix bool
 	var err error
 
-	self.ReadWriter.Flush()
+	_ = d.ReadWriter.Flush()
 	for {
-		line, isPrefix, err = self.ReadWriter.ReadLine()
-		self.Result.Write(line)
+		line, isPrefix, err = d.ReadWriter.ReadLine()
+		_, _ = d.Result.Write(line)
 		if isPrefix {
 			continue
 		}
 		if len(line) > 0 {
-			if self.UseCRLF {
-				self.Result.WriteString(lineEndCRLF)
+			if d.UseCRLF {
+				_, _ = d.Result.WriteString(lineEndCRLF)
 			} else {
-				self.Result.WriteString(lineEnd)
+				_, _ = d.Result.WriteString(lineEnd)
 			}
 		}
 		if err != nil {
 			break
 		}
 	}
-	return self.Result
+	return d.Result
 }
