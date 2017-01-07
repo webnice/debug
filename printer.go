@@ -172,7 +172,16 @@ func (p *printer) print(x reflect.Value) {
 			return
 		}
 		p.printf("%s (len = %d) {", x.Type(), x.Len())
-		p.LenPlus(x)
+		if _, ok := x.Type().MethodByName("String"); ok {
+			p.indentLevel++
+			p.printf("\n")
+			a := x.MethodByName("String")
+			b := a.Interface().(func() string)
+			p.printf("%q\n", b())
+			p.indentLevel--
+		} else {
+			p.LenPlus(x)
+		}
 		p.printf("}")
 
 	case reflect.Struct:
