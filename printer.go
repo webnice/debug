@@ -115,6 +115,58 @@ func (p *printer) LenPlus(x reflect.Value) {
 	}
 }
 
+func (p *printer) printMethodString(x reflect.Value) {
+	p.printf("\n")
+	a := x.MethodByName("String")
+	b := a.Interface().(func() string)
+	p.printf("%q\n", b())
+}
+
+func (p *printer) printStruct(x reflect.Value) {
+	var t reflect.Type
+	var value reflect.Value
+	var ok, first bool
+	var i, n int
+
+	t = x.Type()
+	if t.Name() == "errorString" {
+		p.printf("error %q\n", x.Interface())
+		return
+	}
+
+	p.printf("%s {", t)
+	p.indentLevel++
+	defer func() {
+		p.indentLevel--
+		p.printf("}")
+	}()
+
+	if _, ok = t.MethodByName("String"); ok {
+		p.printMethodString(x)
+		return
+	}
+
+	first = true
+	for i, n = 0, t.NumField(); i < n; i++ {
+		if name := t.Field(i).Name; isExported(name) {
+			value = x.Field(i)
+			if p.filter == nil || p.filter(name, value) {
+				if first {
+					p.printf("\n")
+					first = false
+				}
+				p.printf("%s: ", name)
+				if value.MethodByName("String").IsValid() {
+					p.printStruct(value)
+				} else {
+					p.print(value)
+				}
+				p.printf("\n")
+			}
+		}
+	}
+}
+
 func (p *printer) print(x reflect.Value) {
 	if !notNilFilter("", x) {
 		p.printf("nil")
@@ -185,34 +237,7 @@ func (p *printer) print(x reflect.Value) {
 		p.printf("}")
 
 	case reflect.Struct:
-		t := x.Type()
-		p.printf("%s {", t)
-		p.indentLevel++
-		_, ok := x.Type().MethodByName("String")
-		if ok {
-			p.printf("\n")
-			a := x.MethodByName("String")
-			b := a.Interface().(func() string)
-			p.printf("%q\n", b())
-		} else {
-			first := true
-			for i, n := 0, t.NumField(); i < n; i++ {
-				if name := t.Field(i).Name; isExported(name) {
-					value := x.Field(i)
-					if p.filter == nil || p.filter(name, value) {
-						if first {
-							p.printf("\n")
-							first = false
-						}
-						p.printf("%s: ", name)
-						p.print(value)
-						p.printf("\n")
-					}
-				}
-			}
-		}
-		p.indentLevel--
-		p.printf("}")
+		p.printStruct(x)
 
 	default:
 		v := x.Interface()
