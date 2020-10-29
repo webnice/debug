@@ -3,9 +3,20 @@
 *.a
 *.so
 
+# IDE
+.project
+.settings
+.idea
+
 # Folders
 _obj
 _test
+_dev
+/logs
+/log
+/storage
+/tmp
+/rpmbuild
 
 # Architecture specific extensions/prefixes
 *.[568vq]
@@ -16,9 +27,15 @@ _test
 _cgo_defun.c
 _cgo_gotypes.go
 _cgo_export.*
-
 _testmain.go
 
 *.exe
 *.test
 *.prof
+
+# Binaries
+/bin/
+/pkg/
+
+# Dependences
+/*.log

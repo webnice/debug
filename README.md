@@ -2,7 +2,7 @@
 
 [![GoDoc](https://godoc.org/github.com/webnice/debug?status.svg)](https://godoc.org/github.com/webnice/debug)
 
-Golang library helps debugging
+Golang's library helps to debug your code
 
 #### Dependencies
 
@@ -10,5 +10,5 @@ Golang library helps debugging
 
 #### Install
 ```bash
-go get gopkg.in/webnice/debug.v1
+go get github.com/webnice/debug/v1
 ```

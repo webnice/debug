@@ -1,4 +1,4 @@
-package debug
+package debug // import "github.com/webnice/debug/v1"
 
 import (
 	"fmt"
@@ -30,7 +30,7 @@ var (
 )
 
 func isExported(name string) bool {
-	ch, _ := utf8.DecodeRuneInString(name)
+	var ch, _ = utf8.DecodeRuneInString(name)
 	return unicode.IsUpper(ch)
 }
 
@@ -40,6 +40,7 @@ func notNilFilter(name string, value reflect.Value) (ret bool) {
 	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
 		ret = !value.IsNil()
 	}
+
 	return
 }
 
@@ -62,6 +63,7 @@ func printerPrint(w io.Writer, fset *token.FileSet, x interface{}, f printerFiel
 	}
 	p.print(reflect.ValueOf(x))
 	p.printf("\n")
+
 	return
 }
 
@@ -73,6 +75,7 @@ func (p *printer) printf(format string, args ...interface{}) {
 
 func (p *printer) Write(data []byte) (n int, err error) {
 	var m int
+
 	for i, b := range data {
 		if b == '\n' {
 			m, err = p.output.Write(data[n : i+1])
@@ -99,6 +102,7 @@ func (p *printer) Write(data []byte) (n int, err error) {
 		m, err = p.output.Write(data[n:])
 		n += m
 	}
+
 	return
 }
 
@@ -116,17 +120,24 @@ func (p *printer) LenPlus(x reflect.Value) {
 }
 
 func (p *printer) printMethodString(x reflect.Value) {
+	var (
+		a reflect.Value
+		b func() string
+	)
+
 	p.printf("\n")
-	a := x.MethodByName("String")
-	b := a.Interface().(func() string)
+	a = x.MethodByName("String")
+	b = a.Interface().(func() string)
 	p.printf("%q\n", b())
 }
 
 func (p *printer) printStruct(x reflect.Value) {
-	var t reflect.Type
-	var value reflect.Value
-	var ok, first bool
-	var i, n int
+	var (
+		t         reflect.Type
+		value     reflect.Value
+		ok, first bool
+		i, n      int
+	)
 
 	t = x.Type()
 	if t.Name() == "errorString" {
@@ -140,12 +151,10 @@ func (p *printer) printStruct(x reflect.Value) {
 		p.indentLevel--
 		p.printf("}")
 	}()
-
 	if _, ok = t.MethodByName("String"); ok {
 		p.printMethodString(x)
 		return
 	}
-
 	first = true
 	for i, n = 0, t.NumField(); i < n; i++ {
 		if name := t.Field(i).Name; isExported(name) {
@@ -172,11 +181,9 @@ func (p *printer) print(x reflect.Value) {
 		p.printf("nil")
 		return
 	}
-
 	switch x.Kind() {
 	case reflect.Interface:
 		p.print(x.Elem())
-
 	case reflect.Map:
 		p.printf("%s (len = %d) {", x.Type(), x.Len())
 		if x.Len() > 0 {
@@ -191,7 +198,6 @@ func (p *printer) print(x reflect.Value) {
 			p.indentLevel--
 		}
 		p.printf("}")
-
 	case reflect.Ptr:
 		p.printf("*")
 		ptr := x.Interface()
@@ -201,10 +207,8 @@ func (p *printer) print(x reflect.Value) {
 			p.lineNumber[ptr] = p.currentLineNumber
 			p.print(x.Elem())
 		}
-
 	case reflect.Array:
 		p.printf("%s {", x.Type())
-
 		_, ok := x.Type().MethodByName("String")
 		if ok {
 			p.indentLevel++
@@ -217,7 +221,6 @@ func (p *printer) print(x reflect.Value) {
 			p.LenPlus(x)
 		}
 		p.printf("}")
-
 	case reflect.Slice:
 		if s, ok := x.Interface().([]byte); ok {
 			p.printf("%#q", s)
@@ -235,10 +238,8 @@ func (p *printer) print(x reflect.Value) {
 			p.LenPlus(x)
 		}
 		p.printf("}")
-
 	case reflect.Struct:
 		p.printStruct(x)
-
 	default:
 		v := x.Interface()
 		switch v := v.(type) {

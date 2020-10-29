@@ -1,4 +1,4 @@
-package debug
+package debug // import "github.com/webnice/debug/v1"
 
 import (
 	"runtime"
@@ -23,13 +23,15 @@ func newTrace() *trace {
 	return new(trace)
 }
 
-func (t *trace) Trace(level int) *trace {
-	var ok bool
-	var pc uintptr
-	var fn *runtime.Func
-	var buf []byte
-	var tmp []string
-	var i int
+func (t *trace) Trace(level int) (trc *trace){
+	var (
+		ok bool
+		pc uintptr
+		fn *runtime.Func
+		buf []byte
+		tmp []string
+		n int
+	)
 
 	if level == 0 {
 		level = traceStepBack
@@ -41,9 +43,8 @@ func (t *trace) Trace(level int) *trace {
 		if fn != nil {
 			t.Function = fn.Name()
 		}
-		i = runtime.Stack(buf, true)
-		t.Stack = string(buf[:i])
-
+		n = runtime.Stack(buf, true)
+		t.Stack = string(buf[:n])
 		tmp = strings.Split(t.Function, packageSeparator)
 		if len(tmp) > 1 {
 			t.Package += strings.Join(tmp[:len(tmp)-1], packageSeparator)
@@ -57,7 +58,8 @@ func (t *trace) Trace(level int) *trace {
 			t.Package += tmp[0]
 			t.Function = tmp[1]
 		}
-
 	}
-	return t
+	trc = t
+
+	return
 }

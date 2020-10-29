@@ -1,8 +1,6 @@
-package debug
+package debug // import "github.com/webnice/debug/v1"
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // Nop Empty function. if set environment value DEBUG_CALLS=1 all calls Nop() displayed filename and line
 func Nop() {

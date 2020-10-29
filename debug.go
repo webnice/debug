@@ -1,4 +1,4 @@
-package debug
+package debug // import "github.com/webnice/debug/v1"
 
 import (
 	"bufio"
@@ -34,42 +34,56 @@ type debug struct {
 }
 
 func init() {
+	const (
+		false      = `false`
+		windows    = `windows`
+		calls      = `DEBUG_CALLS`
+		crlf       = `DEBUG_CRLF`
+		tracestack = `DEBUG_TRACESTACK`
+	)
+
 	switch runtime.GOOS {
-	case "windows":
+	case windows:
 		defaultCRLF = true
 	}
-	if os.Getenv("DEBUG_CALLS") != "" {
-		if strings.EqualFold(os.Getenv("DEBUG_CALLS"), "false") != true {
+	if os.Getenv(calls) != "" {
+		if strings.EqualFold(os.Getenv(calls), false) != true {
 			seeCalls = true
 		}
 	}
-	if os.Getenv("DEBUG_CRLF") != "" {
-		if strings.EqualFold(os.Getenv("DEBUG_CRLF"), "false") != true {
+	if os.Getenv(crlf) != "" {
+		if strings.EqualFold(os.Getenv(crlf), false) != true {
 			defaultCRLF = true
 		}
 	}
-	if os.Getenv("DEBUG_TRACESTACK") != "" {
-		if strings.EqualFold(os.Getenv("DEBUG_TRACESTACK"), "false") != true {
+	if os.Getenv(tracestack) != "" {
+		if strings.EqualFold(os.Getenv(tracestack), false) != true {
 			seeTrace = true
 		}
 	}
 }
 
-func newDebug() (self *debug) {
-	self = new(debug)
-	self.UseCRLF = defaultCRLF
-	self.Result = bytes.NewBuffer([]byte{})
-	self.Buffer = bytes.NewBuffer([]byte{})
-	self.ReadWriter = bufio.NewReadWriter(bufio.NewReader(self.Buffer), bufio.NewWriter(self.Buffer))
-	self.Now = time.Now().In(time.Local)
-	self.Trace = newTrace().Trace(traceStepBack + 1)
+func newDebug() (obj *debug) {
+	var buf = &bytes.Buffer{}
+
+	obj = &debug{
+		Result:     &bytes.Buffer{},
+		Buffer:     buf,
+		ReadWriter: bufio.NewReadWriter(bufio.NewReader(buf), bufio.NewWriter(buf)),
+		UseCRLF:    defaultCRLF,
+		Now:        time.Now().In(time.Local),
+		Trace:      newTrace().Trace(traceStepBack + 1),
+	}
+
 	return
 }
 
 // Dump all variables
 func (d *debug) Dump(idl ...interface{}) *debug {
-	var i int
-	var fset *token.FileSet
+	var (
+		i    int
+		fset *token.FileSet
+	)
 
 	for i = range idl {
 		fset = token.NewFileSet()
@@ -79,6 +93,7 @@ func (d *debug) Dump(idl ...interface{}) *debug {
 	if seeTrace {
 		_, _ = d.ReadWriter.WriteString(d.Trace.Stack + lineEnd)
 	}
+
 	return d
 }
 
@@ -86,20 +101,24 @@ func (d *debug) Dump(idl ...interface{}) *debug {
 func (d *debug) Prefix(fn string) *debug {
 	_, _ = d.ReadWriter.WriteString(fmt.Sprintf(delimiterBeg+lineEnd, d.Now.Day(), d.Now.Month(), d.Now.Year(), d.Now.Hour(), d.Now.Minute(), d.Now.Second(), d.Now.Nanosecond()))
 	_, _ = d.ReadWriter.WriteString(fmt.Sprintf("[ %30s ] %s:%d [%s] [%s()]"+lineEnd, fn, d.Trace.File, d.Trace.Line, d.Trace.Package, d.Trace.Function))
+
 	return d
 }
 
 // Add information after dump
 func (d *debug) Suffix() *debug {
 	_, _ = d.ReadWriter.WriteString(delimiterEnd + lineEnd)
+
 	return d
 }
 
 // Finalisation dump
 func (d *debug) Final() *bytes.Buffer {
-	var line []byte
-	var isPrefix bool
-	var err error
+	var (
+		line     []byte
+		isPrefix bool
+		err      error
+	)
 
 	_ = d.ReadWriter.Flush()
 	for {
@@ -119,5 +138,6 @@ func (d *debug) Final() *bytes.Buffer {
 			break
 		}
 	}
+
 	return d.Result
 }

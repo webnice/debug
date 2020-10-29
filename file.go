@@ -1,7 +1,7 @@
-package debug
+package debug // import "github.com/webnice/debug/v1"
 
 import (
-	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -9,18 +9,16 @@ import (
 // FileSave Save string to file. Create file if not exist and append file if exist. If file name is not specified, create file name is the same program name and .txt at extension
 func FileSave(body []byte, file, path string) (err error) {
 	const ext string = `.txt`
-	var dir string
-	var fileName string
-	var fh *os.File
-	var pi os.FileInfo
+	var (
+		fileName string
+		fh       *os.File
+		pi       os.FileInfo
+	)
 
-	if path == "" {
-		dir, err = os.Getwd()
-		if err != nil {
-			return
-		}
-		path = dir
-	} else {
+	if path, err = os.Getwd(); err != nil {
+		return
+	}
+	if path != "" {
 		pi, err = os.Stat(path)
 		if err != nil && os.IsNotExist(err) == false {
 			return
@@ -32,24 +30,21 @@ func FileSave(body []byte, file, path string) (err error) {
 			}
 		}
 		if pi.IsDir() == false {
-			err = errors.New("Incorrect specified path. '" + path + "' is a file")
+			err = fmt.Errorf("incorrect specified path %q is a file", path)
 			return
 		}
 	}
-
 	if file == "" {
 		file = filepath.Base(os.Args[0]) + ext
 	}
-
 	fileName = path + string(os.PathSeparator) + file
-	fh, err = os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
+	if fh, err = os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644); err != nil {
 		return
 	}
-	_, err = fh.Write(body)
-	if err != nil {
+	if _, err = fh.Write(body); err != nil {
 		return
 	}
 	err = fh.Close()
+
 	return
 }

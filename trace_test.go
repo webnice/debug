@@ -1,12 +1,11 @@
-package debug
+package debug // import "github.com/webnice/debug/v1"
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestNewTrace(t *testing.T) {
-	a := newTrace()
+	var a = newTrace()
+
 	if a == nil {
-		t.Errorf("Error in newTrace()")
+		t.Errorf("error in newTrace()")
 	}
 }
