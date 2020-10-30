@@ -1,4 +1,4 @@
-package debug // import "github.com/webnice/debug/v1"
+package debug
 
 import (
 	"runtime"
@@ -23,14 +23,14 @@ func newTrace() *trace {
 	return new(trace)
 }
 
-func (t *trace) Trace(level int) (trc *trace){
+func (t *trace) Trace(level int) (trc *trace) {
 	var (
-		ok bool
-		pc uintptr
-		fn *runtime.Func
+		ok  bool
+		pc  uintptr
+		fn  *runtime.Func
 		buf []byte
 		tmp []string
-		n int
+		n   int
 	)
 
 	if level == 0 {

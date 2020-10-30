@@ -1,4 +1,4 @@
-package debug // import "github.com/webnice/debug/v1"
+package debug
 
 import "testing"
 
