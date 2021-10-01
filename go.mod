@@ -1,3 +1,3 @@
 module github.com/webnice/debug
 
-go 1.15
+go 1.17
