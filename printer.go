@@ -35,10 +35,11 @@ func isExported(name string) bool {
 }
 
 func notNilFilter(name string, value reflect.Value) (ret bool) {
-	ret = true
 	switch value.Kind() {
 	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
 		ret = !value.IsNil()
+	default:
+		ret = true
 	}
 
 	return
@@ -226,7 +227,7 @@ func (p *printer) print(x reflect.Value) {
 			p.printf("%#q", s)
 			return
 		}
-		p.printf("%s (len = %d) {", x.Type(), x.Len())
+		p.printf("%s (len = %d)(cap = %d) {", x.Type(), x.Len(), x.Cap())
 		if _, ok := x.Type().MethodByName("String"); ok {
 			p.indentLevel++
 			p.printf("\n")
