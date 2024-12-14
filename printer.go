@@ -227,7 +227,7 @@ func (p *printer) print(x reflect.Value) {
 			p.printf("%#q", s)
 			return
 		}
-		p.printf("%s (len = %d)(cap = %d) {", x.Type(), x.Len(), x.Cap())
+		p.printf("%s (len = %d, cap = %d) {", x.Type(), x.Len(), x.Cap())
 		if _, ok := x.Type().MethodByName("String"); ok {
 			p.indentLevel++
 			p.printf("\n")
