@@ -1,7 +1,7 @@
 # debug
 
 [![GoDoc](https://pkg.go.dev/badge/github.com/webnice/debug.svg)](https://pkg.go.dev/github.com/webnice/debug)
-[![Coverage Status](https://coveralls.io/repos/github/webnice/debug/badge.svg?branch=v1)](https://coveralls.io/github/webnice/debug?branch=v1)
+[![Coverage Status](https://coveralls.io/repos/github/webnice/debug/badge.svg)](https://coveralls.io/github/webnice/debug)
 
 Библиотека golang
 
