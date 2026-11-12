@@ -6,45 +6,52 @@ import (
 	"path/filepath"
 )
 
-// FileSave Save string to file. Create file if not exist and append file if exist. If file name is not specified, create file name is the same program name and .txt at extension
+// FileSave сохраняет данные в файл: создаёт файл, если он не существует, дописывает данные
+// в конец существующего. Если имя файла не указано, используется имя программы с расширением .txt.
+// Если путь не указан, используется текущая рабочая директория; отсутствующие директории создаются.
 func FileSave(body []byte, file, path string) (err error) {
-	const ext string = `.txt`
+	const (
+		tplExt    string = ".txt"
+		errNotDir string = "указанный путь %q не является директорией"
+	)
 	var (
-		fileName string
-		fh       *os.File
-		pi       os.FileInfo
+		fi   os.FileInfo
+		fh   *os.File
+		cerr error
 	)
 
-	if path, err = os.Getwd(); err != nil {
+	if path == "" {
+		if path, err = getwd(); err != nil {
+			return
+		}
+	}
+	// Существующая директория используется как есть, отсутствующая создаётся.
+	switch fi, err = os.Stat(path); {
+	case err == nil:
+		if !fi.IsDir() {
+			return fmt.Errorf(errNotDir, path)
+		}
+	case os.IsNotExist(err):
+		if err = mkdirAll(path, 0o755); err != nil {
+			return
+		}
+	default:
 		return
 	}
-	if path != "" {
-		pi, err = os.Stat(path)
-		if err != nil && os.IsNotExist(err) == false {
-			return
-		}
-		if err == nil {
-			err = os.MkdirAll(path, 0755)
-			if err != nil {
-				return
-			}
-		}
-		if pi.IsDir() == false {
-			err = fmt.Errorf("incorrect specified path %q is a file", path)
-			return
-		}
-	}
+	// Пустое имя файла: используется имя программы с расширением .txt.
 	if file == "" {
-		file = filepath.Base(os.Args[0]) + ext
+		file = filepath.Base(os.Args[0]) + tplExt
 	}
-	fileName = path + string(os.PathSeparator) + file
-	if fh, err = os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644); err != nil {
+	// Данные дописываются в конец файла.
+	if fh, err = os.OpenFile(filepath.Join(path, file), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644); err != nil {
 		return
 	}
-	if _, err = fh.Write(body); err != nil {
-		return
-	}
-	err = fh.Close()
+	defer func() {
+		if cerr = fh.Close(); err == nil {
+			err = cerr
+		}
+	}()
+	_, err = fh.Write(body)
 
 	return
 }

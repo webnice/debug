@@ -11,61 +11,44 @@ import (
 	"time"
 )
 
-const (
-	delimiterBeg string = `[ %02d.%02d.%04d %02d:%02d:%02d:%010d ] ------------------------------------------------------------`
-	delimiterEnd string = `-----------------------------------------------------------------------------------------------`
-	lineEnd      string = "\n"
-	lineEndCRLF  string = "\r\n"
-)
-
-var (
-	defaultCRLF bool // For operating systems with the end of line CRLF or set environment value DEBUG_CRLF=true or DEBUG_CRLF=false
-	seeCalls    bool // Search on a large project forgotten debug calls. Set to true by environment value DEBUG_CALLS=true
-	seeTrace    bool // Printing with the bump data call stack. Set to true by set environment value DEBUG_TRACESTACK=true
-)
-
-type debug struct {
-	Result     *bytes.Buffer
-	Buffer     *bytes.Buffer
-	ReadWriter *bufio.ReadWriter
-	UseCRLF    bool
-	Now        time.Time
-	Trace      *trace
-}
-
+// init загружает настройки пакета из переменных окружения.
 func init() {
 	const (
-		false      = `false`
-		windows    = `windows`
-		calls      = `DEBUG_CALLS`
-		crlf       = `DEBUG_CRLF`
-		tracestack = `DEBUG_TRACESTACK`
+		envCRLF  string = "DEBUG_CRLF"
+		envCalls string = "DEBUG_CALLS"
+		envTrace string = "DEBUG_TRACESTACK"
 	)
 
-	switch runtime.GOOS {
-	case windows:
-		defaultCRLF = true
-	}
-	if os.Getenv(calls) != "" {
-		if strings.EqualFold(os.Getenv(calls), false) != true {
-			seeCalls = true
-		}
-	}
-	if os.Getenv(crlf) != "" {
-		if strings.EqualFold(os.Getenv(crlf), false) != true {
-			defaultCRLF = true
-		}
-	}
-	if os.Getenv(tracestack) != "" {
-		if strings.EqualFold(os.Getenv(tracestack), false) != true {
-			seeTrace = true
-		}
-	}
+	defaultCRLF = envBool(envCRLF, runtime.GOOS == "windows")
+	seeCalls.Store(envBool(envCalls, false))
+	seeTrace.Store(envBool(envTrace, false))
 }
 
-func newDebug() (obj *debug) {
-	var buf = &bytes.Buffer{}
+// envBool возвращает булево значение переменной окружения name.
+// Если переменная не задана или содержит нераспознанное значение, возвращается значение def.
+func envBool(name string, def bool) bool {
+	var value string
 
+	// Пустое значение: результат — значение по умолчанию.
+	if value = strings.ToLower(strings.TrimSpace(os.Getenv(name))); value == "" {
+		return def
+	}
+	// Распознанные литералы истины и лжи.
+	switch value {
+	case "1", "t", "true", "y", "yes", "on":
+		return true
+	case "0", "f", "false", "n", "no", "off":
+		return false
+	}
+
+	return def
+}
+
+// newDebug создаёт объект отладочного дампа с текущим временем и информацией о месте вызова.
+func newDebug() (obj *debug) {
+	var buf *bytes.Buffer
+
+	buf = &bytes.Buffer{}
 	obj = &debug{
 		Result:     &bytes.Buffer{},
 		Buffer:     buf,
@@ -78,41 +61,44 @@ func newDebug() (obj *debug) {
 	return
 }
 
-// Dump all variables
-func (d *debug) Dump(idl ...interface{}) *debug {
+// Dump выводит дамп всех переданных переменных.
+func (d *debug) Dump(idl ...any) *debug {
 	var (
-		i    int
-		fset *token.FileSet
+		i  int
+		fs *token.FileSet
 	)
 
 	for i = range idl {
-		fset = token.NewFileSet()
-		_ = printerPrint(d.ReadWriter, fset, idl[i], notNilFilter)
+		fs = token.NewFileSet()
+		_ = printerPrint(d.ReadWriter, fs, idl[i], notNilFilter)
 	}
-	// call stack
-	if seeTrace {
-		_, _ = d.ReadWriter.WriteString(d.Trace.Stack + lineEnd)
+	// Стек вызовов.
+	if seeTrace.Load() {
+		_, _ = d.ReadWriter.WriteString(d.Trace.Stack + tplLineEnd)
 	}
 
 	return d
 }
 
-// Add information before dump
+// Prefix добавляет информацию перед дампом: разделитель с датой и место вызова.
 func (d *debug) Prefix(fn string) *debug {
-	_, _ = d.ReadWriter.WriteString(fmt.Sprintf(delimiterBeg+lineEnd, d.Now.Day(), d.Now.Month(), d.Now.Year(), d.Now.Hour(), d.Now.Minute(), d.Now.Second(), d.Now.Nanosecond()))
-	_, _ = d.ReadWriter.WriteString(fmt.Sprintf("[ %30s ] %s:%d [%s] [%s()]"+lineEnd, fn, d.Trace.File, d.Trace.Line, d.Trace.Package, d.Trace.Function))
+	const tplCallInfo = "[ %30s ] %s:%d [%s] [%s()]" + tplLineEnd
+
+	_, _ = d.ReadWriter.WriteString(fmt.Sprintf(tplDelimiterBeg+tplLineEnd, d.Now.Day(), d.Now.Month(), d.Now.Year(), d.Now.Hour(), d.Now.Minute(), d.Now.Second(), d.Now.Nanosecond()))
+	_, _ = d.ReadWriter.WriteString(fmt.Sprintf(tplCallInfo, fn, d.Trace.File, d.Trace.Line, d.Trace.Package, d.Trace.Function))
 
 	return d
 }
 
-// Add information after dump
+// Suffix добавляет информацию после дампа.
 func (d *debug) Suffix() *debug {
-	_, _ = d.ReadWriter.WriteString(delimiterEnd + lineEnd)
+	_, _ = d.ReadWriter.WriteString(tplDelimiterEnd + tplLineEnd)
 
 	return d
 }
 
-// Finalisation dump
+// Final завершает формирование дампа - переносит накопленные строки в результат, заменяя окончания строк согласно
+// настройке UseCRLF.
 func (d *debug) Final() *bytes.Buffer {
 	var (
 		line     []byte
@@ -121,23 +107,81 @@ func (d *debug) Final() *bytes.Buffer {
 	)
 
 	_ = d.ReadWriter.Flush()
+	// Пустые строки дампа сохраняются, терминатор выбирается по настройке UseCRLF.
+	// bufio.Reader.ReadLine возвращает ошибку только вместе с пустой строкой,
+	// поэтому выход из цикла — только через проверку в начале итерации.
 	for {
-		line, isPrefix, err = d.ReadWriter.ReadLine()
+		if line, isPrefix, err = d.ReadWriter.ReadLine(); err != nil && len(line) == 0 {
+			break
+		}
 		_, _ = d.Result.Write(line)
 		if isPrefix {
 			continue
 		}
-		if len(line) > 0 {
-			if d.UseCRLF {
-				_, _ = d.Result.WriteString(lineEndCRLF)
-			} else {
-				_, _ = d.Result.WriteString(lineEnd)
-			}
-		}
-		if err != nil {
-			break
+		if d.UseCRLF {
+			_, _ = d.Result.WriteString(tplLineEndCRLF)
+		} else {
+			_, _ = d.Result.WriteString(tplLineEnd)
 		}
 	}
 
 	return d.Result
+}
+
+// logCall выводит имя отладочной функции и место её вызова.
+func logCall(fn string) {
+	const tplLogCall = "[ %30s ] %s:%d"
+	var obj *debug
+
+	if !seeCalls.Load() {
+		return
+	}
+	obj = newDebug()
+	_, _ = obj.ReadWriter.WriteString(fmt.Sprintf(tplLogCall, fn, obj.Trace.File, obj.Trace.Line))
+	fmt.Print(obj.Final().String())
+}
+
+// Nop — пустая функция. Если задано значение переменной окружения DEBUG_CALLS=1, все вызовы Nop() выводят имя файла
+// и номер строки вызова.
+func Nop() {
+	const tplFuncName = "debug.Nop()"
+
+	logCall(tplFuncName)
+}
+
+// Dumper выводит дамп всех переменных в STDOUT.
+func Dumper(idl ...any) {
+	const tplFuncName = "debug.Dumper()"
+
+	fmt.Print(newDebug().Prefix(tplFuncName).Dump(idl...).Suffix().Final().String())
+}
+
+// DumperString выводит дамп всех переменных в строку.
+func DumperString(idl ...any) string {
+	const tplFuncName = "debug.DumperString()"
+
+	return newDebug().Prefix(tplFuncName).Dump(idl...).Suffix().Final().String()
+}
+
+// DumperByte выводит дамп всех переменных в []byte.
+func DumperByte(idl ...any) []byte {
+	const tplFuncName = "debug.DumperByte()"
+
+	return newDebug().Prefix(tplFuncName).Dump(idl...).Suffix().Final().Bytes()
+}
+
+// DumperFile выводит дамп всех переменных в файл. Имя файла совпадает с именем программы,
+// расширение — .txt.
+func DumperFile(idl ...any) {
+	const tplFuncName = "debug.DumperFile()"
+
+	_ = FileSave(newDebug().Prefix(tplFuncName).Dump(idl...).Suffix().Final().Bytes(), "", "")
+}
+
+// SeeCallStack включает или выключает вывод стека вызовов.
+func SeeCallStack(v bool) {
+	const tplFuncName = "debug.SeeCallStack()"
+
+	seeTrace.Store(v)
+	logCall(tplFuncName)
 }
